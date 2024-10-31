@@ -35,19 +35,23 @@
 #include "esp_check.h"
 #include "driver/gpio.h"
 
-#define Lock1 GPIO_NUM_2
+#define Lock1 GPIO_NUM_4
+#define Lock2 GPIO_NUM_2
 
 static const char *TAG = "Webserver";
 
+
 /*********************** WEBSERVER CODE BIGINS ************************/
 
-static esp_err_t LOCK1_handler(httpd_req_t *req)
+
+
+/*LOCK 1 CONFIGURATIONS*/
+
+
+static esp_err_t LOCK1LOBBY_handler(httpd_req_t *req)
 {
     esp_err_t error;
-	ESP_LOGI(TAG, "LOCK1 UNLOCKED");
-	gpio_set_level(Lock1, 1);
-	vTaskDelay(100);
-	gpio_set_level(Lock1, 0);
+	ESP_LOGI(TAG, "LOCK1 LOBBY OPENED");
 	const char *response = (const char *) req->user_ctx;
 	error = httpd_resp_send(req, response, strlen(response));
 	if (error != ESP_OK)
@@ -56,7 +60,63 @@ static esp_err_t LOCK1_handler(httpd_req_t *req)
 	}
 	else ESP_LOGI(TAG, "Response sent Successfully");
 	return error;
-	
+}
+
+static const httpd_uri_t lock1lobby = {
+    .uri       = "/lock1lobby",
+    .method    = HTTP_GET,
+    .handler   = LOCK1LOBBY_handler,
+    /* Let's pass response string in user
+     * context to demonstrate it's usage */
+    .user_ctx  = "<!DOCTYPE html>\
+<html>\
+<head>\
+<style>\
+.button {\
+  border: none;\	
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+\
+.button1 {background-color: #04AA6D;} /* Green */\
+.button2 {background-color: #000000;} /* Black */\
+</style>\
+</head>\
+<body>\
+\
+<h1>SBU SmartLock Network</h1>\
+<h2>LOCKER1</h2>\
+<p>Click \"UNLOCK\" to unlock the door</p>\
+\
+<button class=\"button button1\" onclick= \"window.location.href='/lock1'\">Unlock</button>\
+<button class=\"button button2\" onclick= \"window.location.href='/'\">Home</button>\
+\
+</body>\
+</html>"
+};
+
+
+static esp_err_t LOCK1_handler(httpd_req_t *req)
+{
+    esp_err_t error;
+	ESP_LOGI(TAG, "LOCK1 UNLOCKED");
+	gpio_set_level(Lock1, 0);
+	vTaskDelay(100);
+	gpio_set_level(Lock1, 1);
+	const char *response = (const char *) req->user_ctx;
+	error = httpd_resp_send(req, response, strlen(response));
+	if (error != ESP_OK)
+	{
+		ESP_LOGI(TAG, "Error %d while sending Response", error);
+	}
+	else ESP_LOGI(TAG, "Response sent Successfully");
+	return error;
 }
 
 static const httpd_uri_t lock1 = {
@@ -82,19 +142,374 @@ static const httpd_uri_t lock1 = {
 }\
 \
 .button1 {background-color: #04AA6D;} /* Green */\
+.button2 {background-color: #000000;} /* Black */\
 </style>\
 </head>\
 <body>\
 \
 <h1>SBU SmartLock Network</h1>\
+<h2>LOCKER1</h2>\
 <p>Click \"UNLOCK\" to unlock the door</p>\
 \
 <button class=\"button button1\" onclick= \"window.location.href='/lock1'\">Unlock</button>\
+<button class=\"button button2\" onclick= \"window.location.href='/'\">Home</button>\
 \
 </body>\
 </html>"
 };
 
+/*LOCK 1 CONFIGURATIONS ENDS*/
+
+
+/*LOCK 2 CONFIGURATIONS*/
+
+
+static esp_err_t LOCK2LOBBY_handler(httpd_req_t *req)
+{
+    esp_err_t error;
+	ESP_LOGI(TAG, "LOCK2 LOBBY OPENED");
+	const char *response = (const char *) req->user_ctx;
+	error = httpd_resp_send(req, response, strlen(response));
+	if (error != ESP_OK)
+	{
+		ESP_LOGI(TAG, "Error %d while sending Response", error);
+	}
+	else ESP_LOGI(TAG, "Response sent Successfully");
+	return error;
+	
+}
+
+static const httpd_uri_t lock2lobby = {
+    .uri       = "/lock2lobby",
+    .method    = HTTP_GET,
+    .handler   = LOCK2LOBBY_handler,
+    /* Let's pass response string in user
+     * context to demonstrate it's usage */
+    .user_ctx  = "<!DOCTYPE html>\
+<html>\
+<head>\
+<style>\
+.button {\
+  border: none;\	
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+\
+.button1 {background-color: #008CBA;} /* Blue */\
+.button2 {background-color: #000000;} /* Black */\
+</style>\
+</head>\
+<body>\
+\
+<h1>SBU SmartLock Network</h1>\
+<h2>LOCKER2</h2>\
+<p>Click \"UNLOCK\" to unlock the door</p>\
+\
+<button class=\"button button1\" onclick= \"window.location.href='/lock2'\">Unlock</button>\
+<button class=\"button button2\" onclick= \"window.location.href='/'\">Home</button>\
+\
+</body>\
+</html>"
+};
+
+
+static esp_err_t LOCK2_handler(httpd_req_t *req)
+{
+    esp_err_t error;
+	ESP_LOGI(TAG, "LOCK2 UNLOCKED");
+	gpio_set_level(Lock2, 0);
+	vTaskDelay(100);
+	gpio_set_level(Lock2, 1);
+	const char *response = (const char *) req->user_ctx;
+	error = httpd_resp_send(req, response, strlen(response));
+	if (error != ESP_OK)
+	{
+		ESP_LOGI(TAG, "Error %d while sending Response", error);
+	}
+	else ESP_LOGI(TAG, "Response sent Successfully");
+	return error;
+	
+}
+
+static const httpd_uri_t lock2 = {
+    .uri       = "/lock2",
+    .method    = HTTP_GET,
+    .handler   = LOCK2_handler,
+    /* Let's pass response string in user
+     * context to demonstrate it's usage */
+    .user_ctx  = "<!DOCTYPE html>\
+<html>\
+<head>\
+<style>\
+.button {\
+  border: none;\	
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+\
+.button1 {background-color: #008CBA;} /* Blue */\
+.button2 {background-color: #000000;} /* Black */\
+</style>\
+</head>\
+<body>\
+\
+<h1>SBU SmartLock Network</h1>\
+<h2>LOCKER2</h2>\
+<p>Click \"UNLOCK\" to unlock the door</p>\
+\
+<button class=\"button button1\" onclick= \"window.location.href='/lock2'\">Unlock</button>\
+<button class=\"button button2\" onclick= \"window.location.href='/'\">Home</button>\
+\
+</body>\
+</html>"
+};
+
+/*LOCK 2 CONFIGURATIONS ENDS*/
+
+
+/*ADMIN CONFIGURATIONS*/
+
+static esp_err_t LOCK1ADMIN_handler(httpd_req_t *req)
+{
+    esp_err_t error;
+	ESP_LOGI(TAG, "LOCK1 UNLOCKED BY ADMIN");
+	gpio_set_level(Lock1, 0);
+	vTaskDelay(100);
+	gpio_set_level(Lock1, 1);
+	const char *response = (const char *) req->user_ctx;
+	error = httpd_resp_send(req, response, strlen(response));
+	if (error != ESP_OK)
+	{
+		ESP_LOGI(TAG, "Error %d while sending Response", error);
+	}
+	else ESP_LOGI(TAG, "Response sent Successfully");
+	return error;
+}
+
+
+static const httpd_uri_t lock1admin = {
+    .uri       = "/lock1admin",
+    .method    = HTTP_GET,
+    .handler   = LOCK1ADMIN_handler,
+    /* Let's pass response string in user
+     * context to demonstrate it's usage */
+    .user_ctx  = "<!DOCTYPE html>\
+<html>\
+<head>\
+<style>\
+.button {\
+  border: none;\
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+\
+.button1 {background-color: #04AA6D;} /* Green */\
+.button2 {background-color: #008CBA;} /* Blue */\
+.button3 {background-color: #000000;} /* Black */\
+\
+</style>\
+</head>\
+<body>\
+\
+<h1>SBU SmartLock Network</h1>\
+<p>Please select the Locker you want to access</p>\
+<button class=\"button button1\" onclick= \"window.location.href='/lock1admin'\">Locker 1</button>\
+<button class=\"button button2\" onclick= \"window.location.href='/lock2admin'\">Locker 2</button>\
+<button class=\"button button3\" onclick= \"window.location.href='/'\">Home</button>\
+</body>\
+</html>"
+};
+
+
+static esp_err_t LOCK2ADMIN_handler(httpd_req_t *req)
+{
+    esp_err_t error;
+	ESP_LOGI(TAG, "LOCK 2UNLOCKED BY ADMIN");
+	gpio_set_level(Lock2, 0);
+	vTaskDelay(100);
+	gpio_set_level(Lock2, 1);
+	const char *response = (const char *) req->user_ctx;
+	error = httpd_resp_send(req, response, strlen(response));
+	if (error != ESP_OK)
+	{
+		ESP_LOGI(TAG, "Error %d while sending Response", error);
+	}
+	else ESP_LOGI(TAG, "Response sent Successfully");
+	return error;
+}
+
+
+static const httpd_uri_t lock2admin = {
+    .uri       = "/lock2admin",
+    .method    = HTTP_GET,
+    .handler   = LOCK2ADMIN_handler,
+    /* Let's pass response string in user
+     * context to demonstrate it's usage */
+    .user_ctx  = "<!DOCTYPE html>\
+<html>\
+<head>\
+<style>\
+.button {\
+  border: none;\
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+\
+.button1 {background-color: #04AA6D;} /* Green */\
+.button2 {background-color: #008CBA;} /* Blue */\
+.button3 {background-color: #000000;} /* Black */\
+\
+</style>\
+</head>\
+<body>\
+\
+<h1>SBU SmartLock Network</h1>\
+<p>Please select the Locker you want to access</p>\
+<button class=\"button button1\" onclick= \"window.location.href='/lock1admin'\">Locker 1</button>\
+<button class=\"button button2\" onclick= \"window.location.href='/lock2admin'\">Locker 2</button>\
+<button class=\"button button3\" onclick= \"window.location.href='/'\">Home</button>\
+</body>\
+</html>"
+};
+
+
+static esp_err_t ADMIN_handler(httpd_req_t *req)
+{
+    esp_err_t error;
+	ESP_LOGI(TAG, "Admin page opened");
+	const char *response = (const char *) req->user_ctx;
+	error = httpd_resp_send(req, response, strlen(response));
+	if (error != ESP_OK)
+	{
+		ESP_LOGI(TAG, "Error %d while sending Response", error);
+	}
+	else ESP_LOGI(TAG, "Response sent Successfully");
+	return error;
+	
+}
+
+static const httpd_uri_t admin = {
+    .uri       = "/admin",
+    .method    = HTTP_GET,
+    .handler   = ADMIN_handler,
+    /* Let's pass response string in user
+     * context to demonstrate it's usage */
+    .user_ctx  = "<!DOCTYPE html>\
+<html>\
+<head>\
+<style>\
+.button {\
+  border: none;\
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+\
+.button1 {background-color: #04AA6D;} /* Green */\
+.button2 {background-color: #008CBA;} /* Blue */\
+.button3 {background-color: #000000;} /* Black */\
+\
+</style>\
+</head>\
+<body>\
+\
+<h1>SBU SmartLock Network</h1>\
+<p>Please select the Locker you want to access</p>\
+<button class=\"button button1\" onclick= \"window.location.href='/lock1admin'\">Locker 1</button>\
+<button class=\"button button2\" onclick= \"window.location.href='/lock2admin'\">Locker 2</button>\
+<button class=\"button button3\" onclick= \"window.location.href='/'\">Home</button>\
+</body>\
+</html>"
+};
+
+/*ADMIN CONFIGURATIONS ENDS*/
+
+/*ROOT PAGE CONFIGURATIONS*/
+static esp_err_t ROOT_handler(httpd_req_t *req)
+{
+    esp_err_t error;
+	ESP_LOGI(TAG, "Root page opened");
+	const char *response = (const char *) req->user_ctx;
+	error = httpd_resp_send(req, response, strlen(response));
+	if (error != ESP_OK)
+	{
+		ESP_LOGI(TAG, "Error %d while sending Response", error);
+	}
+	else ESP_LOGI(TAG, "Response sent Successfully");
+	return error;
+	
+}
+
+static const httpd_uri_t root = {
+    .uri       = "/",
+    .method    = HTTP_GET,
+    .handler   = ROOT_handler,
+    /* Let's pass response string in user
+     * context to demonstrate it's usage */
+    .user_ctx  = "<!DOCTYPE html>\
+<html>\
+<head>\
+<style>\
+.button {\
+  border: none;\
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+\
+.button1 {background-color: #04AA6D;} /* Green */\
+.button2 {background-color: #008CBA;} /* Blue */\
+.button3 {background-color: #000000;} /* Black */\
+\
+</style>\
+</head>\
+<body>\
+\
+<h1>SBU SmartLock Network</h1>\
+<p>Please select the Locker you want to access</p>\
+<button class=\"button button1\" onclick= \"window.location.href='/lock1lobby'\">Locker 1</button>\
+<button class=\"button button2\" onclick= \"window.location.href='/lock2lobby'\">Locker 2</button>\
+<button class=\"button button3\" onclick= \"window.location.href='/admin'\">ADMIN</button>\
+</body>\
+</html>"
+};
+
+
+/*ROOT PAGE CONFIGURATIONS ENDS*/
 
 
 esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
@@ -110,9 +525,6 @@ static httpd_handle_t start_webserver(void)
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 #if CONFIG_IDF_TARGET_LINUX
-    // Setting port as 8001 when building for Linux. Port 80 can be used only by a privileged user in linux.
-    // So when a unprivileged user tries to run the application, it throws bind error and the server is not started.
-    // Port 8001 can be used by an unprivileged user as well. So the application will not throw bind error and the
     // server will be started.
     config.server_port = 8001;
 #endif // !CONFIG_IDF_TARGET_LINUX
@@ -123,7 +535,14 @@ static httpd_handle_t start_webserver(void)
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
+        httpd_register_uri_handler(server, &lock1lobby);
         httpd_register_uri_handler(server, &lock1);
+        httpd_register_uri_handler(server, &lock2lobby);
+        httpd_register_uri_handler(server, &lock2);
+        httpd_register_uri_handler(server, &root);
+        httpd_register_uri_handler(server, &admin);
+        httpd_register_uri_handler(server, &lock1admin);
+        httpd_register_uri_handler(server, &lock2admin);
         return server;
     }
 
@@ -168,6 +587,13 @@ static void configure_locks (void)
 	
 	gpio_set_direction (Lock1, GPIO_MODE_OUTPUT);
 	
+	gpio_set_level (Lock1, 1);
+	
+	gpio_reset_pin (Lock2);
+	
+	gpio_set_direction (Lock2, GPIO_MODE_OUTPUT);
+	
+	gpio_set_level (Lock2, 1);
 	
 	
 }
@@ -264,5 +690,4 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_netif_init());
     
         ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_AP_STAIPASSIGNED, &connect_handler, &server));
-       // ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &disconnect_handler, &server));
 }
