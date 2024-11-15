@@ -1,11 +1,3 @@
-/*  WiFi softAP Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -13,9 +5,11 @@
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "nvs.h"
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_system.h"
 
 #include "lwip/err.h"
 #include "lwip/sys.h"
@@ -35,13 +29,344 @@
 #include "esp_check.h"
 #include "driver/gpio.h"
 
+#include "mbedtls/base64.h"
+
 #define Lock1 GPIO_NUM_4
 #define Lock2 GPIO_NUM_2
+
+#define AUTH_USERNAME1 "admin1"
+static char auth_password1[5] = "pass1";
+
+#define AUTH_USERNAME2 "admin2"
+static char auth_password2[5] = "pass2";
+
+#define AUTH_USERNAMEAD "admin"
+#define AUTH_PASSWORDAD "password"
+
 
 static const char *TAG = "Webserver";
 
 
 /*********************** WEBSERVER CODE BIGINS ************************/
+
+/**********************AUTHENTICATING INITIALIZE BEGINS***********************/
+
+static esp_err_t check_auth1(httpd_req_t *req) {
+    char auth_header[128] = {0};
+    /* Get the value of the Authorization header */
+    if (httpd_req_get_hdr_value_str(req, "Authorization", auth_header, sizeof(auth_header)) == ESP_OK) {
+        ESP_LOGI(TAG, "Found header => Authorization: %s", auth_header);
+
+        /* Check if the header starts with "Basic " */
+        if (strncmp(auth_header, "Basic ", 6) == 0) {
+            /* Decode the Base64 encoded credentials */
+            char *auth_credentials = auth_header + 6; // Skip "Basic "
+            size_t decoded_len;
+            uint8_t decoded_credentials[64];
+            esp_err_t err = mbedtls_base64_decode(decoded_credentials, sizeof(decoded_credentials), &decoded_len, (const uint8_t *)auth_credentials, strlen(auth_credentials));
+            if (err == 0) {
+                decoded_credentials[decoded_len] = '\0'; // Null-terminate the string
+                ESP_LOGI(TAG, "Decoded credentials: %s", decoded_credentials);
+
+                /* Check if credentials match */
+                char expected_credentials[64];
+                snprintf(expected_credentials, sizeof(expected_credentials), "%s:%s", AUTH_USERNAME1, auth_password1);
+                if (strcmp((char *)decoded_credentials, expected_credentials) == 0) {
+                    /* Credentials match */
+                    return ESP_OK;
+                }
+            }
+        }
+    }
+
+    /* If we reach here, authentication failed */
+    httpd_resp_set_status(req, "401 Unauthorized");
+    httpd_resp_set_hdr(req, "WWW-Authenticate", "Basic realm=\"ESP32\"");
+    httpd_resp_send(req, "Unauthorized", strlen("Unauthorized"));
+    return ESP_FAIL;
+}
+
+
+static esp_err_t check_auth2(httpd_req_t *req) {
+    char auth_header[128] = {0};
+    /* Get the value of the Authorization header */
+    if (httpd_req_get_hdr_value_str(req, "Authorization", auth_header, sizeof(auth_header)) == ESP_OK) {
+        ESP_LOGI(TAG, "Found header => Authorization: %s", auth_header);
+
+        /* Check if the header starts with "Basic " */
+        if (strncmp(auth_header, "Basic ", 6) == 0) {
+            /* Decode the Base64 encoded credentials */
+            char *auth_credentials = auth_header + 6; // Skip "Basic "
+            size_t decoded_len;
+            uint8_t decoded_credentials[64];
+            esp_err_t err = mbedtls_base64_decode(decoded_credentials, sizeof(decoded_credentials), &decoded_len, (const uint8_t *)auth_credentials, strlen(auth_credentials));
+            if (err == 0) {
+                decoded_credentials[decoded_len] = '\0'; // Null-terminate the string
+                ESP_LOGI(TAG, "Decoded credentials: %s", decoded_credentials);
+
+                /* Check if credentials match */
+                char expected_credentials[64];
+                snprintf(expected_credentials, sizeof(expected_credentials), "%s:%s", AUTH_USERNAME2, auth_password2);
+                if (strcmp((char *)decoded_credentials, expected_credentials) == 0) {
+                    /* Credentials match */
+                    return ESP_OK;
+                }
+            }
+        }
+    }
+
+    /* If we reach here, authentication failed */
+    httpd_resp_set_status(req, "401 Unauthorized");
+    httpd_resp_set_hdr(req, "WWW-Authenticate", "Basic realm=\"ESP32\"");
+    httpd_resp_send(req, "Unauthorized", strlen("Unauthorized"));
+    return ESP_FAIL;
+}
+
+
+static esp_err_t check_authad(httpd_req_t *req) {
+    char auth_header[128] = {0};
+    /* Get the value of the Authorization header */
+    if (httpd_req_get_hdr_value_str(req, "Authorization", auth_header, sizeof(auth_header)) == ESP_OK) {
+        ESP_LOGI(TAG, "Found header => Authorization: %s", auth_header);
+
+        /* Check if the header starts with "Basic " */
+        if (strncmp(auth_header, "Basic ", 6) == 0) {
+            /* Decode the Base64 encoded credentials */
+            char *auth_credentials = auth_header + 6; // Skip "Basic "
+            size_t decoded_len;
+            uint8_t decoded_credentials[64];
+            esp_err_t err = mbedtls_base64_decode(decoded_credentials, sizeof(decoded_credentials), &decoded_len, (const uint8_t *)auth_credentials, strlen(auth_credentials));
+            if (err == 0) {
+                decoded_credentials[decoded_len] = '\0'; // Null-terminate the string
+                ESP_LOGI(TAG, "Decoded credentials: %s", decoded_credentials);
+
+                /* Check if credentials match */
+                char expected_credentials[64];
+                snprintf(expected_credentials, sizeof(expected_credentials), "%s:%s", AUTH_USERNAMEAD, AUTH_PASSWORDAD);
+                if (strcmp((char *)decoded_credentials, expected_credentials) == 0) {
+                    /* Credentials match */
+                    return ESP_OK;
+                }
+            }
+        }
+    }
+
+    /* If we reach here, authentication failed */
+    httpd_resp_set_status(req, "401 Unauthorized");
+    httpd_resp_set_hdr(req, "WWW-Authenticate", "Basic realm=\"ESP32\"");
+    httpd_resp_send(req, "Unauthorized", strlen("Unauthorized"));
+    return ESP_FAIL;
+}
+
+/**********************AUTHENTICATING INITIALIZE ENDS***********************/
+
+/**************PASSWORD GENERATOR BEGINS**************/
+
+void generate_random_password(char *password, size_t length) {
+    const char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    if (length) {
+        // Subtract 1 to leave room for the null terminator
+        for (size_t n = 0; n < length - 1; n++) {
+            int key = esp_random() % (sizeof(charset) - 1);
+            password[n] = charset[key];
+        }
+        password[length - 1] = '\0';
+    }
+}
+
+
+
+static esp_err_t generate_password1_handler(httpd_req_t *req) {
+
+    // Generate a new random password for lock1
+    generate_random_password(auth_password1, sizeof(auth_password1));
+
+    // Optionally, store the new password in NVS here
+
+    char content[512];
+    snprintf(content, sizeof(content),
+             "<!DOCTYPE html>\
+<html>\
+<style>\
+.button {\
+  border: none;\
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+.button1 {background-color: #000000;} /* Black */\
+</style>\
+<head><title>New Password for Locker 1</title></head>\
+<body>\
+<h1>New Password for Locker 1</h1>\
+<p>Password: %s</p>\
+<button class=\"button button1\" onclick= \"window.location.href='/cpl'\">Back</button>\
+</body>\
+</html>", auth_password1);
+
+    httpd_resp_send(req, content, strlen(content));
+    return ESP_OK;
+}
+
+
+static const httpd_uri_t generate_password1_uri = {
+    .uri       = "/generate_password1",
+    .method    = HTTP_GET,
+    .handler   = generate_password1_handler,
+    .user_ctx  = NULL
+};
+
+
+
+static esp_err_t generate_password2_handler(httpd_req_t *req) {
+
+    // Generate a new random password for lock2
+    generate_random_password(auth_password2, sizeof(auth_password2));
+
+    // Optionally, store the new password in NVS here
+
+    char content[512];
+    snprintf(content, sizeof(content),
+             "<!DOCTYPE html>\
+<html>\
+<style>\
+.button {\
+  border: none;\
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+.button1 {background-color: #000000;} /* Black */\
+</style>\
+<head><title>New Password for Locker 2</title></head>\
+<body>\
+<h1>New Password for Locker 2</h1>\
+<p>Password: %s</p>\
+<button class=\"button button1\" onclick= \"window.location.href='/cpl'\">Back</button>\
+</body>\
+</html>", auth_password2);
+
+    httpd_resp_send(req, content, strlen(content));
+    return ESP_OK;
+}
+
+
+static const httpd_uri_t generate_password2_uri = {
+    .uri       = "/generate_password2",
+    .method    = HTTP_GET,
+    .handler   = generate_password2_handler,
+    .user_ctx  = NULL
+};
+
+
+
+static esp_err_t view_passwords_handler(httpd_req_t *req) {
+
+    char content[1024];
+    snprintf(content, sizeof(content),
+             "<!DOCTYPE html>\
+<html>\
+<style>\
+.button {\
+  border: none;\
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+.button1 {background-color: #000000;} /* Black */\
+</style>\
+<head><title>Current Passwords</title></head>\
+<body>\
+<h1>Current Passwords</h1>\
+<p>Locker 1 Password: %s</p>\
+<p>Locker 2 Password: %s</p>\
+<button class=\"button button1\" onclick= \"window.location.href='/cpl'\">Back</button>\
+</body>\
+</html>", auth_password1, auth_password2);
+
+    httpd_resp_send(req, content, strlen(content));
+    return ESP_OK;
+}
+
+
+static const httpd_uri_t view_passwords_uri = {
+    .uri       = "/view_passwords",
+    .method    = HTTP_GET,
+    .handler   = view_passwords_handler,
+    .user_ctx  = NULL
+};
+
+static esp_err_t CPL_handler(httpd_req_t *req)
+{
+	
+    esp_err_t error;
+	ESP_LOGI(TAG, "CPL OPENED");
+	const char *response = (const char *) req->user_ctx;
+	error = httpd_resp_send(req, response, strlen(response));
+	if (error != ESP_OK)
+	{
+		ESP_LOGI(TAG, "Error %d while sending Response", error);
+	}
+	else ESP_LOGI(TAG, "Response sent Successfully");
+	return error;
+}
+
+static const httpd_uri_t cpl = {
+    .uri       = "/cpl",
+    .method    = HTTP_GET,
+    .handler   = CPL_handler,
+    /* Let's pass response string in user
+     * context to demonstrate it's usage */
+    .user_ctx  = "<!DOCTYPE html>\
+<html>\
+<head>\
+<style>\
+.button {\
+  border: none;\
+  color: white;\
+  padding: 15px 32px;\
+  text-align: center;\
+  text-decoration: none;\
+  display: inline-block;\
+  font-size: 16px;\
+  margin: 4px 2px;\
+  cursor: pointer;\
+}\
+.button1 {background-color: #04AA6D;} /* Green */\
+.button2 {background-color: #008CBA;} /* Blue */\
+.button3 {background-color: #f44336;} /* Red */\
+.button4 {background-color: #000000;} /* Black */\
+</style>\
+</head>\
+<body>\
+<h1>SBU SmartLock Network</h1>\
+<p>Please select an action:</p>\
+<button class=\"button button1\" onclick=\"window.location.href='/generate_password1'\">Generate Password for Locker 1</button>\
+<button class=\"button button2\" onclick=\"window.location.href='/generate_password2'\">Generate Password for Locker 2</button>\
+<button class=\"button button3\" onclick=\"window.location.href='/view_passwords'\">View Current Passwords</button>\
+<button class=\"button button4\" onclick=\"window.location.href='/admin'\">Back</button>\
+</body>\
+</html>"
+};
+
+
+
+/***************PASSWORD GENERATOR ENDS***************/
 
 
 
@@ -50,6 +375,11 @@ static const char *TAG = "Webserver";
 
 static esp_err_t LOCK1LOBBY_handler(httpd_req_t *req)
 {
+	
+	if (check_auth1(req) != ESP_OK) {
+        return ESP_FAIL; // Authentication failed
+    }
+    
     esp_err_t error;
 	ESP_LOGI(TAG, "LOCK1 LOBBY OPENED");
 	const char *response = (const char *) req->user_ctx;
@@ -106,9 +436,9 @@ static esp_err_t LOCK1_handler(httpd_req_t *req)
 {
     esp_err_t error;
 	ESP_LOGI(TAG, "LOCK1 UNLOCKED");
-	gpio_set_level(Lock1, 0);
-	vTaskDelay(100);
 	gpio_set_level(Lock1, 1);
+	vTaskDelay(100);
+	gpio_set_level(Lock1, 0);
 	const char *response = (const char *) req->user_ctx;
 	error = httpd_resp_send(req, response, strlen(response));
 	if (error != ESP_OK)
@@ -166,6 +496,10 @@ static const httpd_uri_t lock1 = {
 
 static esp_err_t LOCK2LOBBY_handler(httpd_req_t *req)
 {
+	if (check_auth2(req) != ESP_OK) {
+        return ESP_FAIL; // Authentication failed
+    }
+    
     esp_err_t error;
 	ESP_LOGI(TAG, "LOCK2 LOBBY OPENED");
 	const char *response = (const char *) req->user_ctx;
@@ -223,9 +557,9 @@ static esp_err_t LOCK2_handler(httpd_req_t *req)
 {
     esp_err_t error;
 	ESP_LOGI(TAG, "LOCK2 UNLOCKED");
-	gpio_set_level(Lock2, 0);
-	vTaskDelay(100);
 	gpio_set_level(Lock2, 1);
+	vTaskDelay(100);
+	gpio_set_level(Lock2, 0);
 	const char *response = (const char *) req->user_ctx;
 	error = httpd_resp_send(req, response, strlen(response));
 	if (error != ESP_OK)
@@ -285,9 +619,9 @@ static esp_err_t LOCK1ADMIN_handler(httpd_req_t *req)
 {
     esp_err_t error;
 	ESP_LOGI(TAG, "LOCK1 UNLOCKED BY ADMIN");
-	gpio_set_level(Lock1, 0);
-	vTaskDelay(100);
 	gpio_set_level(Lock1, 1);
+	vTaskDelay(100);
+	gpio_set_level(Lock1, 0);
 	const char *response = (const char *) req->user_ctx;
 	error = httpd_resp_send(req, response, strlen(response));
 	if (error != ESP_OK)
@@ -324,6 +658,7 @@ static const httpd_uri_t lock1admin = {
 .button1 {background-color: #04AA6D;} /* Green */\
 .button2 {background-color: #008CBA;} /* Blue */\
 .button3 {background-color: #000000;} /* Black */\
+.button4 {background-color: #f44336;} /* Red */\
 \
 </style>\
 </head>\
@@ -334,6 +669,7 @@ static const httpd_uri_t lock1admin = {
 <button class=\"button button1\" onclick= \"window.location.href='/lock1admin'\">Locker 1</button>\
 <button class=\"button button2\" onclick= \"window.location.href='/lock2admin'\">Locker 2</button>\
 <button class=\"button button3\" onclick= \"window.location.href='/'\">Home</button>\
+<button class=\"button button4\" onclick= \"window.location.href='/cpl'\">Change Passwords</button>\
 </body>\
 </html>"
 };
@@ -343,9 +679,9 @@ static esp_err_t LOCK2ADMIN_handler(httpd_req_t *req)
 {
     esp_err_t error;
 	ESP_LOGI(TAG, "LOCK 2UNLOCKED BY ADMIN");
-	gpio_set_level(Lock2, 0);
-	vTaskDelay(100);
 	gpio_set_level(Lock2, 1);
+	vTaskDelay(100);
+	gpio_set_level(Lock2, 0);
 	const char *response = (const char *) req->user_ctx;
 	error = httpd_resp_send(req, response, strlen(response));
 	if (error != ESP_OK)
@@ -382,6 +718,7 @@ static const httpd_uri_t lock2admin = {
 .button1 {background-color: #04AA6D;} /* Green */\
 .button2 {background-color: #008CBA;} /* Blue */\
 .button3 {background-color: #000000;} /* Black */\
+.button4 {background-color: #f44336;} /* Red */\
 \
 </style>\
 </head>\
@@ -392,6 +729,7 @@ static const httpd_uri_t lock2admin = {
 <button class=\"button button1\" onclick= \"window.location.href='/lock1admin'\">Locker 1</button>\
 <button class=\"button button2\" onclick= \"window.location.href='/lock2admin'\">Locker 2</button>\
 <button class=\"button button3\" onclick= \"window.location.href='/'\">Home</button>\
+<button class=\"button button4\" onclick= \"window.location.href='/cpl'\">Change Passwords</button>\
 </body>\
 </html>"
 };
@@ -399,6 +737,11 @@ static const httpd_uri_t lock2admin = {
 
 static esp_err_t ADMIN_handler(httpd_req_t *req)
 {
+	
+	if (check_authad(req) != ESP_OK) {
+        return ESP_FAIL; // Authentication failed
+    }
+    
     esp_err_t error;
 	ESP_LOGI(TAG, "Admin page opened");
 	const char *response = (const char *) req->user_ctx;
@@ -437,6 +780,7 @@ static const httpd_uri_t admin = {
 .button1 {background-color: #04AA6D;} /* Green */\
 .button2 {background-color: #008CBA;} /* Blue */\
 .button3 {background-color: #000000;} /* Black */\
+.button4 {background-color: #f44336;} /* Red */\
 \
 </style>\
 </head>\
@@ -447,6 +791,8 @@ static const httpd_uri_t admin = {
 <button class=\"button button1\" onclick= \"window.location.href='/lock1admin'\">Locker 1</button>\
 <button class=\"button button2\" onclick= \"window.location.href='/lock2admin'\">Locker 2</button>\
 <button class=\"button button3\" onclick= \"window.location.href='/'\">Home</button>\
+<button class=\"button button4\" onclick= \"window.location.href='/cpl'\">Change Passwords</button>\
+\
 </body>\
 </html>"
 };
@@ -529,6 +875,7 @@ static httpd_handle_t start_webserver(void)
     config.server_port = 8001;
 #endif // !CONFIG_IDF_TARGET_LINUX
     config.lru_purge_enable = true;
+    config.max_uri_handlers = 16;
 
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
@@ -543,6 +890,10 @@ static httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &admin);
         httpd_register_uri_handler(server, &lock1admin);
         httpd_register_uri_handler(server, &lock2admin);
+        httpd_register_uri_handler(server, &generate_password1_uri);
+        httpd_register_uri_handler(server, &generate_password2_uri);
+        httpd_register_uri_handler(server, &view_passwords_uri);
+        httpd_register_uri_handler(server, &cpl);
         return server;
     }
 
@@ -587,13 +938,13 @@ static void configure_locks (void)
 	
 	gpio_set_direction (Lock1, GPIO_MODE_OUTPUT);
 	
-	gpio_set_level (Lock1, 1);
+	//gpio_set_level (Lock1, 1);
 	
 	gpio_reset_pin (Lock2);
 	
 	gpio_set_direction (Lock2, GPIO_MODE_OUTPUT);
 	
-	gpio_set_level (Lock2, 1);
+	//gpio_set_level (Lock2, 1);
 	
 	
 }
